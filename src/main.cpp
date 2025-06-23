@@ -1,18 +1,20 @@
 #include <Arduino.h>
+#include "ESPNativeHA.h" // Beillesztjük a saját, új könyvtárunkat!
 
-// put function declarations here:
-int myFunction(int, int);
+// Létrehozunk egy objektumot (egy "példányt") a könyvtárunkból.
+// Nevezzük el pl. 'ha_client'-nek (Home Assistant kliens).
+ESPNativeHA ha_client;
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  // Elindítjuk a soros kommunikációt a debug üzenetekhez.
+  Serial.begin(115200);
+  delay(1000); // Adunk egy kis időt a soros monitornak, hogy elinduljon.
+
+  // Meghívjuk a könyvtárunk inicializáló függvényét a saját adatainkkal.
+  // Ezeket később majd a config fájlból fogjuk olvasni!
+  ha_client.begin("my-esp32-device", "192.168.1.100");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  // Egyelőre a fő ciklus nem csinál semmit.
 }
