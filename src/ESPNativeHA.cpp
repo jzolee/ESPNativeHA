@@ -29,7 +29,7 @@ void ESPNativeHA::begin(const char* device_name, const char* project_name, const
     _log_printf(LOG_LEVEL_INFO, "ESPNativeHA starting up for device: %s", device_name);
     
     _comm_handler.begin(device_name, port);
-    _discovery_handler.begin(device_name, project_name, project_version, port);
+    _discovery_handler.begin(device_name);
 }
 
 void ESPNativeHA::loop() {
