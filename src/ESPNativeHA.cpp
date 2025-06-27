@@ -5,19 +5,25 @@
 #include <cstdarg>
 #include <WiFi.h>
 
+#ifdef ESP32
+#include <ESPmDNS.h>
+#elif defined(ESP8266)
+#include <ESP8266mDNS.h>
+#endif
+
 ESPNativeHA::ESPNativeHA() {
     _comm_handler.on_connect = [this]() {
         if (this->_on_connect_callback) this->_on_connect_callback();
-    };
+        };
     _comm_handler.on_disconnect = [this]() {
         if (this->_on_disconnect_callback) this->_on_disconnect_callback();
-    };
-    _comm_handler.on_error = [this](const std::string &error) {
+        };
+    _comm_handler.on_error = [this](const std::string& error) {
         this->_log_printf(LOG_LEVEL_ERROR, "Communication Error: %s", error.c_str());
-    };
-    _comm_handler.on_hello_response = [this](const HelloResponse& response){
+        };
+    _comm_handler.on_hello_response = [this](const HelloResponse& response) {
         this->_log_printf(LOG_LEVEL_INFO, "Received HelloResponse from server: %s (API v%d.%d)", response.server_info, response.api_version_major, response.api_version_minor);
-    };
+        };
 }
 
 ESPNativeHA::~ESPNativeHA() {
@@ -27,34 +33,57 @@ ESPNativeHA::~ESPNativeHA() {
 
 void ESPNativeHA::begin(const char* device_name, const char* project_name, const char* project_version, uint16_t port) {
     _log_printf(LOG_LEVEL_INFO, "ESPNativeHA starting up for device: %s", device_name);
-    
+    String mac = WiFi.macAddress();
+    mac.replace(":", "");
+    mac.toLowerCase();
+    setupMDNS(device_name, mac.c_str());
     _comm_handler.begin(device_name, port);
-    _discovery_handler.begin(device_name);
+}
+
+void ESPNativeHA::setupMDNS(const char* deviceName, const char* mac) {
+    if (!MDNS.begin(deviceName)) {
+        Serial.println("Error setting up MDNS responder!");
+        return;
+    }
+
+    Serial.println("mDNS responder started");
+
+    // A kulcsfontosságú szolgáltatás hirdetése
+    MDNS.addService("esphomelib", "tcp", 6053);
+
+    // TXT rekordok hozzáadása, amiket a Home Assistant keres
+    // A MAC cím fontos az egyedi azonosítóhoz!
+
+    MDNS.addServiceTxt("esphomelib", "tcp", "version", "2024.5.0"); // Használj egy aktuális ESPHome verziót
+    MDNS.addServiceTxt("esphomelib", "tcp", "platform", "ESP32"); // Vagy ESP8266
+    MDNS.addServiceTxt("esphomelib", "tcp", "mac", mac);
+    MDNS.addServiceTxt("esphomelib", "tcp", "friendly_name", deviceName);
+    // MDNS.addServiceTxt("esphomelib", "tcp", "password", "false"); // Ha nincs jelszó
 }
 
 void ESPNativeHA::loop() {
     _comm_handler.loop();
-    _discovery_handler.loop();
+    //_discovery_handler.loop();
 }
 
 void ESPNativeHA::onConnect(std::function<void()> callback) { this->_on_connect_callback = callback; }
 void ESPNativeHA::onDisconnect(std::function<void()> callback) { this->_on_disconnect_callback = callback; }
 void ESPNativeHA::setLogLevel(LogLevel level) { _logLevel = level; }
 
-DeviceConfigurator ESPNativeHA::createDevice(const char* unique_id) { 
+DeviceConfigurator ESPNativeHA::createDevice(const char* unique_id) {
     Device* newDevice = new Device();
     newDevice->unique_id = unique_id;
     _devices.push_back(newDevice);
     return DeviceConfigurator(*newDevice);
 }
-EntityConfigurator ESPNativeHA::createSensor(Device& device, const char* entity_id, Agent<float>& agent) { 
+EntityConfigurator ESPNativeHA::createSensor(Device& device, const char* entity_id, Agent<float>& agent) {
     FloatSensorEntity* newSensor = new FloatSensorEntity(agent);
     newSensor->entity_id = entity_id;
     newSensor->parent_device = &device;
     _entities.push_back(newSensor);
     return EntityConfigurator(*newSensor);
 }
-EntityConfigurator ESPNativeHA::createSensor(const char* entity_id, Agent<float>& agent) { 
+EntityConfigurator ESPNativeHA::createSensor(const char* entity_id, Agent<float>& agent) {
     FloatSensorEntity* newSensor = new FloatSensorEntity(agent);
     newSensor->entity_id = entity_id;
     newSensor->parent_device = nullptr;

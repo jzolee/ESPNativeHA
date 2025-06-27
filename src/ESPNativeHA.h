@@ -7,7 +7,10 @@
 #include <map>
 #include <Agent.h>
 #include "communication.h"
-#include "discovery.h"
+//#include "discovery.h"
+
+
+#include <AsyncUDP.h>  // ESP32-ben beépített, ESP8266-hoz telepíteni kell
 
 // Előre deklarációk
 class ESPNativeHA;
@@ -99,13 +102,14 @@ public:
     EntityConfigurator createSensor(const char* entity_id, Agent<float>& agent);
 private:
     CommunicationHandler _comm_handler;
-    DiscoveryHandler _discovery_handler;
+    //DiscoveryHandler _discovery_handler;
     std::vector<Device*> _devices;
     std::vector<Entity*> _entities;
     std::function<void()> _on_connect_callback;
     std::function<void()> _on_disconnect_callback;
     LogLevel _logLevel = LOG_LEVEL_INFO;
     void _log_printf(LogLevel level, const char* format, ...);
+    void setupMDNS(const char* deviceName, const char* mac);
 };
 
 #endif // ESP_NATIVE_HA_H
