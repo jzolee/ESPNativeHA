@@ -3,7 +3,6 @@
 // =========================================================================
 #include "ESPNativeHA.h"
 #include <cstdarg>
-#include <WiFi.h>
 
 #ifdef ESP32
 #include <ESPmDNS.h>
@@ -31,13 +30,10 @@ ESPNativeHA::~ESPNativeHA() {
     for (auto p : _entities) delete p;
 }
 
-void ESPNativeHA::begin(const char* device_name, const char* project_name, const char* project_version, uint16_t port) {
+void ESPNativeHA::begin(const char* device_name, const char* mac) {
     _log_printf(LOG_LEVEL_INFO, "ESPNativeHA starting up for device: %s", device_name);
-    String mac = WiFi.macAddress();
-    mac.replace(":", "");
-    mac.toLowerCase();
-    setupMDNS(device_name, mac.c_str());
-    _comm_handler.begin(device_name, port);
+    setupMDNS(device_name, mac);
+    _comm_handler.begin(device_name);
 }
 
 void ESPNativeHA::setupMDNS(const char* deviceName, const char* mac) {
@@ -63,7 +59,6 @@ void ESPNativeHA::setupMDNS(const char* deviceName, const char* mac) {
 
 void ESPNativeHA::loop() {
     _comm_handler.loop();
-    //_discovery_handler.loop();
 }
 
 void ESPNativeHA::onConnect(std::function<void()> callback) { this->_on_connect_callback = callback; }

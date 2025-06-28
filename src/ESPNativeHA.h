@@ -92,7 +92,7 @@ public:
     enum LogLevel { LOG_LEVEL_NONE, LOG_LEVEL_ERROR, LOG_LEVEL_WARN, LOG_LEVEL_INFO, LOG_LEVEL_DEBUG, };
     ESPNativeHA();
     ~ESPNativeHA();
-    void begin(const char* device_name, const char* project_name = "ESPNativeHA", const char* project_version = "1.0.0", uint16_t port = 6053);
+    void begin(const char* device_name, const char* mac);
     void loop();
     void onConnect(std::function<void()> callback);
     void onDisconnect(std::function<void()> callback);
@@ -102,7 +102,6 @@ public:
     EntityConfigurator createSensor(const char* entity_id, Agent<float>& agent);
 private:
     CommunicationHandler _comm_handler;
-    //DiscoveryHandler _discovery_handler;
     std::vector<Device*> _devices;
     std::vector<Entity*> _entities;
     std::function<void()> _on_connect_callback;

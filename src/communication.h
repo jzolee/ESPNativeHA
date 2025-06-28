@@ -41,8 +41,7 @@ class CommunicationHandler {
 public:
     CommunicationHandler();
     ~CommunicationHandler();
-    // JAVÍTÁS: A begin() most már a client_info-t is kéri
-    void begin(const String& client_info, uint16_t port);
+    void begin(const String& client_info);
     void loop();
     std::function<void()> on_connect;
     std::function<void()> on_disconnect;

@@ -14,9 +14,9 @@ CommunicationHandler::~CommunicationHandler() {
     if (_connection) { delete _connection; }
 }
 
-void CommunicationHandler::begin(const String& client_info, uint16_t port) {
+void CommunicationHandler::begin(const String& client_info) {
     _client_info = client_info;
-    _server = new AsyncServer(port);
+    _server = new AsyncServer(6053);
     _server->onClient([this](void* arg, AsyncClient* client) {
         this->_onClientConnect(arg, client);
     }, this);
