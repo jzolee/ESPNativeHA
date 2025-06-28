@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "chachapoly.h": "c",
-        "hkdf.h": "c",
-        "poly1305.h": "c"
-    }
-}
