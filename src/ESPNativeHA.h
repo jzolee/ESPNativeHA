@@ -7,10 +7,6 @@
 #include <map>
 #include <Agent.h>
 #include "communication.h"
-//#include "discovery.h"
-
-
-#include <AsyncUDP.h>  // ESP32-ben beépített, ESP8266-hoz telepíteni kell
 
 // Előre deklarációk
 class ESPNativeHA;
