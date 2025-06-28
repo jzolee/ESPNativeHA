@@ -5,15 +5,9 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include "ESPNativeHA.h"
+#include "secrets.h"
 
-// -- WiFi & HA Beállítások --
-const char* WIFI_SSID = "Zx";
-const char* WIFI_PASSWORD = "AbCdEfGhIjKlMnOp";
-//const char* HA_IP_ADDRESS = "192.168.0.103";
-// JAVÍTÁS: A működő eszközről kimásolt NÉV és KULCS helye
 const char* HA_DEVICE_NAME = "my-native-device";
-//const char* HA_ENCRYPTION_KEY = "sSlmHaX1ibeWHnSnOXHnq4B9SsN0RrhAzoG3spq85Zc=";
-
 
 // Létrehozzuk a központi vezérlő objektumot
 ESPNativeHA ha_client;
