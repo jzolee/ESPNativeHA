@@ -5,3 +5,4 @@
 .vscode/ipch
 .old
 src/secrets.h
+.vscode

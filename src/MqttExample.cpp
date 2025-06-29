@@ -13,6 +13,7 @@
 #include "HAManager.h"
 #include "drivers/MqttDriver.h"
 #include "Agent.h"
+#include "core/Logger.h" // Logger beemelése
 
 #include "secrets.h"
 
@@ -20,101 +21,107 @@
 HAManager haManager;
 MqttDriver mqttDriver(MQTT_SERVER, MQTT_PORT);
 
-// --- Agent-ek az adatok tárolására ---
-
-// Konyhai eszközök agentjei
-Agent<float> kitchenTemperatureAgent(22.5f);
-Agent<bool> kitchenLightAgent(false);
-
-// Nappali eszközök agentjei
-Agent<int> livingRoomBrightnessAgent(128);
-Agent<bool> tvPowerAgent(true);
-
-// Önálló (standalone) agentek
+// Agent-ek az adatok tárolására
+Agent<bool> officeLightStateAgent(false);
+Agent<int> officeLightBrightnessAgent(200);
+Agent<bool> officeLockStateAgent(true); 
+Agent<String> livingRoomCoverStateAgent("closed");
+Agent<bool> customSirenAgent(false);
 Agent<int> uptimeAgent(0);
-Agent<bool> systemStatusAgent(true); // Pl. egy általános "OK" jelzés
+Agent<bool> restartButtonAgent(false);
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
-    Serial.println("\nBooting complex example with multiple devices...");
 
+    ha_log->setLogLevel(LogLevel::DEBUG);
+    ha_log->onLog([](LogLevel level, const char* message){
+        const char* levelStr = "";
+        switch(level) {
+            case LogLevel::ERROR: levelStr = "[E] "; break;
+            case LogLevel::WARN:  levelStr = "[W] "; break;
+            case LogLevel::INFO:  levelStr = "[I] "; break;
+            case LogLevel::DEBUG: levelStr = "[D] "; break;
+            default: break;
+        }
+        Serial.print(levelStr);
+        Serial.println(message);
+    });
+
+    ha_log->info("Booting Showcase Example...");
+    
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        Serial.print(".");
+        ha_log->info(".");
     }
-    Serial.println("\nWiFi connected!");
+    ha_log->info("WiFi connected!");
 
     mqttDriver.setUser(MQTT_USER, MQTT_PASSWORD);
 
-    // ====================== ESZKÖZ 1: KONYHA ======================
-    Device& kitchenDevice = haManager.createDevice("konyhai_eszkozok_01")
-        .setName("Konyhai Eszközök")
-        .setManufacturer("Zolee-Művek")
-        .setModel("Konyha-ESP-v1");
+    // ====================== ESZKÖZ 1: IRODA ======================
+    Device& officeDevice = haManager.createDevice("irodai_eszkoz_02")
+        .setName("Irodai Vezérlő")
+        .setManufacturer("Zolee-Művek");
 
-    haManager.createEntity<float>("konyha_hom", "sensor", kitchenTemperatureAgent, &kitchenDevice)
-        .setName("Konyha Hőmérséklet")
-        .setAttribute("device_class", "temperature")
-        .setAttribute("unit_of_measurement", "°C");
+    haManager.createLight("iroda_mennyezeti_lampa", officeLightStateAgent, officeLightBrightnessAgent, &officeDevice)
+        .setName("Irodai Lámpa")
+        .setIcon("mdi:ceiling-light-multiple");
 
-    haManager.createEntity<bool>("konyha_lampa", "switch", kitchenLightAgent, &kitchenDevice)
-        .setName("Konyha Lámpa")
-        .setIcon("mdi:ceiling-light");
+    haManager.createLock("iroda_ajto_zar", officeLockStateAgent, &officeDevice)
+        .setName("Iroda Ajtózár")
+        .setIcon("mdi:lock");
 
     // ====================== ESZKÖZ 2: NAPPALI ======================
-    Device& livingRoomDevice = haManager.createDevice("nappali_media_01")
-        .setName("Nappali Média Center")
-        .setManufacturer("Zolee-Művek")
-        .setModel("Média-ESP-v2");
+    Device& livingRoomDevice = haManager.createDevice("nappali_vezerlo_01")
+        .setName("Nappali Vezérlő");
 
-    haManager.createEntity<int>("nappali_fenyero", "number", livingRoomBrightnessAgent, &livingRoomDevice)
-        .setName("Nappali Hangulatfény")
-        .setIcon("mdi:brightness-6")
-        .setAttribute("min", "0")
-        .setAttribute("max", "255")
-        .setAttribute("mode", "slider");
-
-    haManager.createEntity<bool>("nappali_tv", "switch", tvPowerAgent, &livingRoomDevice)
-        .setName("TV Táp")
-        .setIcon("mdi:television");
-
-
+    haManager.createCover("nappali_redony", livingRoomCoverStateAgent, &livingRoomDevice)
+        .setName("Nappali Redőny")
+        .setAttribute("device_class", "shutter");
+    
+    haManager.createSiren("custom_siren", customSirenAgent, &livingRoomDevice)
+        .setName("Riasztó Sziréna")
+        .setIcon("mdi:alarm-bell");
+        
     // ====================== ÖNÁLLÓ ENTITÁSOK ======================
-    haManager.createEntity<int>("esp_uptime", "sensor", uptimeAgent)
+    haManager.createSensor<int>("esp_uptime", uptimeAgent)
         .setName("ESP Uptime")
         .setIcon("mdi:timer-sand")
         .setAttribute("state_class", "total_increasing")
         .setAttribute("unit_of_measurement", "s");
-    
-    haManager.createEntity<bool>("esp_system_ok", "binary_sensor", systemStatusAgent)
-        .setName("ESP Rendszer Állapot")
-        .setAttribute("device_class", "problem")
-        .setAttribute("payload_on", "OFF")  // Fordított logika: a "problem" device class akkor "OK", ha az állapot "OFF"
-        .setAttribute("payload_off", "ON");
 
+    haManager.createButton("esp_reboot", restartButtonAgent)
+        .setName("ESP32 Újraindítása")
+        .setIcon("mdi:restart-alert");
 
     // ====================== INDÍTÁS ======================
     haManager.begin(&mqttDriver);
-
-    Serial.println("Setup complete.");
+    ha_log->info("Setup complete.");
 
     // --- Visszacsatolások beállítása ---
-    kitchenLightAgent.attach([](bool state){ Serial.printf(">>> Visszajelzés: Konyha lámpa -> %s\n", state ? "ON" : "OFF"); });
-    tvPowerAgent.attach([](bool state){ Serial.printf(">>> Visszajelzés: TV Táp -> %s\n", state ? "ON" : "OFF"); });
-    livingRoomBrightnessAgent.attach([](int value){ Serial.printf(">>> Visszajelzés: Nappali fényerő -> %d\n", value); });
+    officeLockStateAgent.attach([](bool state){ ha_log->info(">>> Callback: Iroda zár új állapota: %s", state ? "LOCKED" : "UNLOCKED"); });
+    livingRoomCoverStateAgent.attach([](String state){ ha_log->info(">>> Callback: Nappali redőny parancs: %s", state.c_str()); });
+    officeLightStateAgent.attach([](bool state){ ha_log->info(">>> Callback: Lámpa állapot -> %s", state ? "ON" : "OFF"); });
+    officeLightBrightnessAgent.attach([](int brightness){ ha_log->info(">>> Callback: Lámpa fényerő -> %d", brightness); });
+    customSirenAgent.attach([](bool state) {
+        ha_log->warn(">>> EGYÉNI KEZELÉS: A sziréna új állapota: %s", state ? "ACTIVE" : "INACTIVE");
+    });
+    restartButtonAgent.attach([](bool val) {
+        ha_log->warn(">>> GOMB MEGNYOMVA: Eszköz újraindítása 3 másodperc múlva!");
+        delay(3000);
+        ESP.restart();
+    });
 }
 
 void loop() {
     haManager.loop();
 
-    // Szimulált szenzor adatok és állapotváltozások
     static unsigned long lastUpdate = 0;
-    if (millis() - lastUpdate > 15000) { // 15 másodpercenként
+    if (millis() - lastUpdate > 30000) {
         lastUpdate = millis();
-        kitchenTemperatureAgent.set(random(190, 230) / 10.0f);
+        ha_log->info("--- Szimuláció: Uptime frissítése ---");
         uptimeAgent.set(millis() / 1000);
     }
 }

@@ -1,11 +1,12 @@
 // =========================================================================
 // File: src/configurators/Configurator.h
-// Leírás: Builder minta a Device és Entity objektumok elegáns létrehozásához.
 // =========================================================================
 #pragma once
 
 #include "../entities/BaseEntity.h"
 #include "../entities/Device.h"
+#include <vector>
+#include <ArduinoJson.h>
 
 class EntityConfigurator {
 private:
@@ -15,6 +16,17 @@ public:
     EntityConfigurator& setName(const String& name) { _entity._name = name; return *this; }
     EntityConfigurator& setAttribute(const String& key, const String& value) { _entity._attributes[key] = value; return *this; }
     EntityConfigurator& setIcon(const String& icon) { return setAttribute("icon", icon); }
+
+    EntityConfigurator& setOptions(const std::vector<String>& options) {
+        JsonDocument doc;
+        JsonArray array = doc.to<JsonArray>();
+        for(const auto& opt : options) {
+            array.add(opt);
+        }
+        String optionsStr;
+        serializeJson(array, optionsStr);
+        return setAttribute("options", optionsStr);
+    }
 };
 
 class DeviceConfigurator {

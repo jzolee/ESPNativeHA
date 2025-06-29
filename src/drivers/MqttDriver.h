@@ -1,6 +1,5 @@
 // =========================================================================
-// File: src/drivers/MqttDriver.h
-// Leírás: MQTT Driver, parancskezeléssel kiegészítve
+// File: src/drivers/MqttDriver.h (FRISSÍTETT a robusztusabb logikához)
 // =========================================================================
 #pragma once
 
@@ -8,6 +7,12 @@
 #include "BaseDriver.h"
 #include <vector>
 #include <map>
+
+struct MqttTopicTemplates {
+    String state_topic = "espnativeha/{unique_id}/state";
+    String command_topic = "espnativeha/{unique_id}/command";
+    String availability_topic = "espnativeha/{chip_id}/status";
+};
 
 class MqttDriver : public BaseDriver {
 private:
@@ -17,10 +22,16 @@ private:
     String _baseTopic;
     HAManager* _manager = nullptr;
     
-    bool _reconnecting = false;
     uint32_t _lastReconnectAttempt = 0;
     
+    // JAVÍTÁS: Új heartbeat időzítő
+    uint32_t _lastAvailabilityPublish = 0;
+    const uint32_t AVAILABILITY_PUBLISH_INTERVAL_MS = 60000; // 1 perc
+
     String _availabilityTopic;
+    String _chipIdHex;
+
+    MqttTopicTemplates _topic_templates;
 
     std::map<String, BaseEntity*> _command_topic_map;
 
@@ -43,6 +54,7 @@ public:
     MqttDriver(const String& server, int port = 1883);
     
     void setUser(const char* user, const char* password);
+    void setTopicTemplates(const MqttTopicTemplates& templates);
     void begin(HAManager* manager) override;
     void loop() override;
     void registerEntity(BaseEntity* entity) override;

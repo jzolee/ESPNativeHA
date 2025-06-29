@@ -1,6 +1,5 @@
 // =========================================================================
 // File: src/entities/TypedEntity.h
-// Leírás: Sablonos entitás osztály (FRISSÍTETT a number típushoz)
 // =========================================================================
 #pragma once
 
@@ -8,7 +7,7 @@
 
 template <typename T>
 class TypedEntity : public BaseEntity {
-private:
+protected:
     Agent<T>& _agent;
     String _component_type;
 
@@ -33,26 +32,5 @@ public:
         _agent.attach([on_change](T /*new_value*/) {
             on_change();
         });
-    }
-
-    bool isCommandable() const override {
-        // JAVÍTÁS: A number is parancsolható
-        return _component_type == "switch" || _component_type == "light" || _component_type == "number";
-    }
-    
-    void onCommand(const String& payload) override {
-        if (std::is_same<T, bool>::value) {
-            if (payload.equalsIgnoreCase("ON")) {
-                _agent.set(true);
-            } else if (payload.equalsIgnoreCase("OFF")) {
-                _agent.set(false);
-            }
-        } 
-        // JAVÍTÁS: Szám típusú parancsok feldolgozása
-        else if (std::is_same<T, int>::value || std::is_same<T, long>::value) {
-            _agent.set(payload.toInt());
-        } else if (std::is_same<T, float>::value || std::is_same<T, double>::value) {
-            _agent.set(payload.toFloat());
-        }
     }
 };
